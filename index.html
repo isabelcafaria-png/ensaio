@@ -50,6 +50,11 @@ header p{margin:6px 0 0;color:var(--muted)}
 .key .k strong{font:600 26px/1.1 var(--lyric)}
 .key .note{font-size:14px;color:var(--ink)}
 .flag{font-size:14px;color:var(--muted);margin:0}
+.voices{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--paper);width:fit-content;max-width:100%}
+.voices button{font:500 15px/1 var(--ui);border:0;border-right:1px solid var(--line);background:transparent;color:var(--ink);padding:11px 14px;cursor:pointer}
+.voices button:last-child{border-right:0}
+.voices button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
+.key .hint{flex-basis:100%;margin:0;font-size:14px;color:var(--muted)}
 .btns{display:flex;flex-wrap:wrap;gap:8px}
 .b{font:600 15px/1 var(--ui);border-radius:10px;padding:12px 16px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);display:inline-flex;gap:8px;align-items:center}
 .b.ghost{background:transparent;color:var(--accent)}
@@ -105,6 +110,12 @@ a{color:var(--accent)}
     <div class="chips" id="chips"></div>
   </section>
 
+  <section class="picker" aria-labelledby="voice-h">
+    <h2 id="voice-h">A minha voz</h2>
+    <div class="voices" id="voices" role="group" aria-labelledby="voice-h"></div>
+    <p class="small" id="voice-tip"></p>
+  </section>
+
   <article class="card" id="song" aria-live="polite">
     <div class="song-head">
       <span class="moment" id="moment"></span>
@@ -117,6 +128,7 @@ a{color:var(--accent)}
         <button type="button" class="b" id="drone" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span>Tocar a nota de casa</span></button>
         <button type="button" class="b ghost" id="chord">Ouvir o acorde</button>
       </div>
+      <p class="hint" id="key-hint"></p>
     </div>
     <p class="flag" id="flag"></p>
 
@@ -242,7 +254,7 @@ function select(i){
   cur = i; stopDrone();
   try { localStorage.setItem("ensaio-song", i); } catch (e) {}
   const s = DATA[i];
-  renderChips();
+  renderChips(); renderVoices();
   $("moment").textContent = s.moment;
   $("title").textContent = s.title;
   $("keyname").textContent = s.keyName;
@@ -264,15 +276,39 @@ function esc(t){ return t.replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
 /* ---------- Som de referência ---------- */
 let ac = null, drone = null;
 function ctx(){ if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === "suspended") ac.resume(); return ac; }
-function tonicHz(root){ let f = 440 * Math.pow(2, (root - 9) / 12); while (f < 220) f *= 2; while (f >= 440) f /= 2; return f; }
-function voice(c, f, gainVal, out){
+/* Nota de casa tocada na zona confortável de cada voz: a primeira oitava da nota a partir do limite inferior (em MIDI) */
+const VOICES = [
+  {id:"soprano", name:"Soprano", lo:62, tip:"A voz feminina mais aguda. Normalmente canta a melodia."},
+  {id:"contralto", name:"Contralto", lo:55, tip:"A voz feminina mais grave."},
+  {id:"tenor", name:"Tenor", lo:50, tip:"A voz masculina mais aguda."},
+  {id:"baixo", name:"Baixo", lo:43, tip:"A voz masculina mais grave."},
+  {id:"nsei", name:"Não sei", lo:57, tip:"A nota toca numa altura média. Se não sabe a sua voz, pergunte a quem dirige o coro em que naipe canta."}
+];
+let myVoice = VOICES[4];
+try { const v = VOICES.find(x => x.id === localStorage.getItem("ensaio-voz")); if (v) myVoice = v; } catch (e) {}
+function tonicMidi(root){ return myVoice.lo + ((root - myVoice.lo) % 12 + 12) % 12; }
+function tonicHz(root){ return 440 * Math.pow(2, (tonicMidi(root) - 69) / 12); }
+function octaveWord(m){ return myVoice.id === "nsei" ? "numa altura média" : "na altura de " + myVoice.name.toLowerCase(); }
+function renderVoices(){
+  $("voices").innerHTML = VOICES.map(v => `<button type="button" data-v="${v.id}" aria-pressed="${v === myVoice}">${v.name}</button>`).join("");
+  $("voice-tip").textContent = myVoice.tip;
+  const s = DATA[cur];
+  $("key-hint").textContent = "A nota de casa é " + s.scale[0] + ". Toca " + octaveWord() + ".";
+}
+$("voices").addEventListener("click", e => {
+  const b = e.target.closest("button[data-v]"); if (!b) return;
+  myVoice = VOICES.find(v => v.id === b.dataset.v);
+  try { localStorage.setItem("ensaio-voz", myVoice.id); } catch (e) {}
+  const was = !!drone; stopDrone(); renderVoices(); if (was) startDrone();
+});
+function synth(c, f, gainVal, out){
   const g = c.createGain(); g.gain.value = 0; g.connect(out);
   [[1,1],[2,.35],[3,.15],[4,.06]].forEach(([h,a]) => { const o = c.createOscillator(); o.frequency.value = f*h; const og = c.createGain(); og.gain.value = a*gainVal; o.connect(og).connect(g); o.start(); g._o = (g._o||[]).concat(o); });
   return g;
 }
 function startDrone(){
   const c = ctx(), out = c.createGain(); out.gain.value = .9; out.connect(c.destination);
-  const g = voice(c, tonicHz(DATA[cur].root), .18, out);
+  const g = synth(c, tonicHz(DATA[cur].root), .18, out);
   g.gain.setTargetAtTime(1, c.currentTime, .08);
   drone = {g, out};
   $("drone").setAttribute("aria-pressed", "true"); $("drone").querySelector("span").textContent = "Parar a nota";
@@ -286,7 +322,7 @@ $("drone").onclick = () => drone ? stopDrone() : startDrone();
 $("chord").onclick = () => {
   const c = ctx(), f = tonicHz(DATA[cur].root), t = c.currentTime;
   [0, 4, 7, 12].forEach((iv, k) => {
-    const g = voice(c, f * Math.pow(2, iv / 12), .1, c.destination);
+    const g = synth(c, f * Math.pow(2, iv / 12), .1, c.destination);
     g.gain.setTargetAtTime(1, t + k * .25, .03); g.gain.setTargetAtTime(0, t + 2.6, .25);
     setTimeout(() => g._o.forEach(o => o.stop()), 4200);
   });

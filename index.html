@@ -1,0 +1,501 @@
+<!doctype html><html lang="pt-PT"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>[hidden]{display:none!important}img{max-width:100%}</style></head><body><title>Ensaio do Coro</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Layout: uma coluna de leitura; escolha do cântico em fichas, depois três passos (ouvir, cantar, verificar) e a letra por baixo. */
+:root{
+  --bg:#eef2f8; --paper:#ffffff; --ink:#16203a; --muted:#566079; --line:#d9e0ec;
+  --accent:#1d4b9c; --accent-soft:#e3ebf8; --on-accent:#ffffff;
+  --gold:#a8741a; --gold-soft:#f6ecd9;
+  --good:#2b7a4b; --good-soft:#e2f2e8; --warn:#b2541a; --warn-soft:#f9e8dc;
+  --lyric:"Spectral",Georgia,"Times New Roman",serif;
+  --ui:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1524; --paper:#172036; --ink:#e8ecf5; --muted:#a2acc2; --line:#2a3550;
+  --accent:#8fb0ec; --accent-soft:#1f2c48; --on-accent:#0f1524;
+  --gold:#e0b25c; --gold-soft:#33291a;
+  --good:#6fcf97; --good-soft:#173326; --warn:#f0a06a; --warn-soft:#3a2416; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0f1524; --paper:#172036; --ink:#e8ecf5; --muted:#a2acc2; --line:#2a3550;
+  --accent:#8fb0ec; --accent-soft:#1f2c48; --on-accent:#0f1524;
+  --gold:#e0b25c; --gold-soft:#33291a;
+  --good:#6fcf97; --good-soft:#173326; --warn:#f0a06a; --warn-soft:#3a2416; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:17px/1.5 var(--ui);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:720px;margin:0 auto;display:grid;gap:20px}
+header h1{font:600 clamp(28px,6vw,36px)/1.15 var(--lyric);margin:0;text-wrap:balance}
+header p{margin:6px 0 0;color:var(--muted)}
+.picker{display:grid;gap:10px}
+.picker h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0;font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:500 15px/1.2 var(--ui);border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:9px 14px;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left}
+.chip small{font-size:12px;color:var(--muted);font-weight:500}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.chip[aria-pressed="true"] small{color:var(--on-accent);opacity:.85}
+.chip:focus-visible,button:focus-visible,.file:focus-within{outline:3px solid var(--gold);outline-offset:2px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:20px;display:grid;gap:18px;min-width:0}
+.song-head{display:grid;gap:4px}
+.moment{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-weight:700}
+.song-head h2{font:600 clamp(24px,5vw,30px)/1.2 var(--lyric);margin:0;text-wrap:balance}
+.key{display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center;background:var(--gold-soft);border-radius:12px;padding:14px 16px}
+.key .k{display:grid;gap:2px;min-width:0}
+.key .k span{font-size:13px;color:var(--muted)}
+.key .k strong{font:600 26px/1.1 var(--lyric)}
+.key .note{font-size:14px;color:var(--ink)}
+.flag{font-size:14px;color:var(--muted);margin:0}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+.b{font:600 15px/1 var(--ui);border-radius:10px;padding:12px 16px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);display:inline-flex;gap:8px;align-items:center}
+.b.ghost{background:transparent;color:var(--accent)}
+.b[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:var(--on-accent)}
+.b svg{width:16px;height:16px;fill:currentColor}
+.steps{display:grid;gap:16px;counter-reset:s}
+.step{display:grid;grid-template-columns:32px 1fr;gap:12px;align-items:start}
+.step::before{counter-increment:s;content:counter(s);width:32px;height:32px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;display:grid;place-items:center}
+.step > div{display:grid;gap:8px;min-width:0}
+.step h3{margin:4px 0 0;font-size:17px}
+.step p{margin:0;color:var(--muted);font-size:15px}
+audio{width:100%;max-width:100%}
+.file{position:relative;display:inline-flex}
+.file input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.result{display:grid;gap:12px;border-top:1px solid var(--line);padding-top:16px}
+.verdict{border-radius:12px;padding:14px 16px;display:grid;gap:4px}
+.verdict strong{font-size:19px}
+.verdict span{font-size:15px}
+.verdict.good{background:var(--good-soft);color:var(--good)}
+.verdict.warn{background:var(--warn-soft);color:var(--warn)}
+.verdict.wait{background:var(--accent-soft);color:var(--accent)}
+.verdict span{color:var(--ink)}
+.res-label{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;margin:0}
+canvas{width:100%;height:240px;display:block;border-radius:10px;background:var(--bg)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.meter{display:grid;gap:10px;background:var(--bg);border-radius:12px;padding:14px 16px}
+.now{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.now strong{font:600 44px/1 var(--lyric);min-width:2.6em}
+.now span{font-size:17px;font-weight:600}
+.now.good span{color:var(--good)} .now.warn span{color:var(--warn)}
+.bar{position:relative;height:28px;border-radius:999px;background:linear-gradient(90deg,var(--warn-soft),var(--good-soft) 40%,var(--good-soft) 60%,var(--warn-soft));display:flex;justify-content:space-between;align-items:center;padding:0 12px;font-size:12px;color:var(--muted)}
+.bar .mid{position:absolute;left:50%;top:4px;bottom:4px;width:2px;background:var(--good)}
+.bar i{position:absolute;top:2px;bottom:2px;width:6px;margin-left:-3px;border-radius:3px;background:var(--ink);left:50%;transition:left .08s linear}
+.bar i.off{opacity:.2}
+.lyrics{font:400 19px/1.6 var(--lyric);display:grid;gap:18px}
+.lyrics h3{font:600 13px/1 var(--ui);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0}
+.stanza p{margin:0}
+.stanza p.echo{font-style:italic;color:var(--muted);padding-left:1.2em}
+.small{font-size:14px;color:var(--muted);margin:0}
+a{color:var(--accent)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Ensaio do Coro</h1>
+    <p>Igreja de Nossa Senhora do Rosário de Fátima. Escolha o cântico, ouça a nota de partida, cante e confirme se ficou no tom do coro.</p>
+  </header>
+
+  <section class="picker" aria-label="Escolher o cântico">
+    <h2>Cânticos da missa</h2>
+    <div class="chips" id="chips"></div>
+  </section>
+
+  <article class="card" id="song" aria-live="polite">
+    <div class="song-head">
+      <span class="moment" id="moment"></span>
+      <h2 id="title"></h2>
+    </div>
+
+    <div class="key">
+      <div class="k"><span>Tom em que o coro canta</span><strong id="keyname"></strong></div>
+      <div class="btns">
+        <button type="button" class="b" id="drone" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span>Tocar a nota de casa</span></button>
+        <button type="button" class="b ghost" id="chord">Ouvir o acorde</button>
+      </div>
+    </div>
+    <p class="flag" id="flag"></p>
+
+    <div class="steps">
+      <div class="step"><div>
+        <h3>Ouça o tom</h3>
+        <p id="listen-txt">Toque a nota de casa e cante-a junto com o som, num "lá" ou "mmm". Quando o som e a sua voz se misturarem sem "vibrar", está no tom.</p>
+        <audio id="player" controls preload="none"></audio>
+        <a id="yt" target="_blank" rel="noopener" hidden>Ouvir no YouTube</a>
+      </div></div>
+      <div class="step"><div>
+        <h3>Cante ao vivo</h3>
+        <p>Carregue no botão e autorize o microfone. Vai ver a nota que está a cantar e se está certa. Se cantar com a gravação, use auscultadores, para o microfone só ouvir a sua voz.</p>
+        <div class="btns"><button type="button" class="b" id="live" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-2.1a7 7 0 0 0 6-6.9z"/></svg><span>Começar a cantar ao vivo</span></button></div>
+        <div class="meter" id="meter" hidden>
+          <div class="now"><strong id="now-note">–</strong><span id="now-state">Cante uma nota…</span></div>
+          <div class="bar" aria-hidden="true"><span class="lo">baixa</span><span class="mid"></span><span class="hi">alta</span><i id="needle"></i></div>
+        </div>
+      </div></div>
+      <div class="step"><div>
+        <h3>Ou analise uma gravação</h3>
+        <p>Se preferir, grave-se no telemóvel (20 a 60 segundos, num sítio sossegado) e escolha aqui o ficheiro. A análise é feita neste aparelho e o ficheiro não é enviado para lado nenhum.</p>
+        <div class="btns">
+          <label class="file b ghost" for="upload">Escolher a minha gravação<input type="file" id="upload" accept="audio/*,.opus,.ogg,.m4a,.mp3,.wav,.aac"></label>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="result" id="result">
+      <p class="res-label" id="res-label"></p>
+      <div class="verdict wait" id="verdict"><strong>A preparar o exemplo…</strong></div>
+      <canvas id="chart" role="img" aria-label="Gráfico das notas cantadas ao longo do tempo, comparadas com as notas do tom"></canvas>
+      <div class="legend"><span><i style="background:var(--good)"></i>nota certa do tom</span><span><i style="background:var(--warn)"></i>nota fora do tom</span><span><i style="background:var(--gold)"></i>linha da nota de casa</span></div>
+      <p class="small">As linhas são as notas do tom do cântico. Os pontos verdes devem cair em cima das linhas. A análise vê se está no tom certo e afinada. Não vê se cantou a melodia certa.</p>
+    </div>
+  </article>
+
+  <article class="card">
+    <div class="lyrics" id="lyrics"></div>
+  </article>
+
+  <p class="small">Letras, acordes e gravações do <a href="https://joaojosedacostafernandes.github.io/canticos-missa/" target="_blank" rel="noopener">site dos Cânticos da Missa</a>. Tons confirmados pela análise das gravações do coro de 18 de outubro de 2026.</p>
+</div>
+
+<script>
+const DATA = [{"title":"Como são belos os pés","moment":"Entrada","root":0,"keyName":"Dó maior","scale":["Dó","Ré","Mi","Fá","Sol","Lá","Si"],"flag":"Tom tirado da folha de acordes. Ainda não há gravação do coro para confirmar.","audio":"","audioUrl":"","yt":"https://www.youtube.com/watch?v=oukiee-PUwU","lyrics":[[{"t":"Já se ouvem nossos passos a chegar,","echo":false},{"t":"já se ouvem nossas vozes de alegria,","echo":false},{"t":"neste dia que é uma benção","echo":false},{"t":"para a Igreja reunida","echo":false},{"t":"Jesus Cristo nos congrega e faz irmãos","echo":false}],[{"t":"Como são belos os pés que anunciam a Paz","echo":false},{"t":"E as mãos que repartem o Pão.","echo":false},{"t":"Na refeição do cordeiro da Palavra, Vinho e Pão,","echo":false},{"t":"Somos o povo de Deus em comunhão.","echo":false}],[{"t":"Todos vós que tendes sede,","echo":false},{"t":"vinde beber da fonte da verdade.","echo":false},{"t":"Saciai a vossa fome","echo":false},{"t":"sem pagar vinho nem pão.","echo":false}],[{"t":"Já se mudam nossos corações de pedra","echo":false},{"t":"pela força do Espírito de Deus,","echo":false},{"t":"já vencemos as barreiras","echo":false},{"t":"que destroem a harmonia:","echo":false},{"t":"Jesus Cristo nos congrega e faz irmãos.","echo":false}],[{"t":"Vinde todos que sois pobres,","echo":false},{"t":"injustiçados,","echo":false},{"t":"sem teto ou sem pão:","echo":false},{"t":"vinde ser fraternidade,","echo":false},{"t":"gerar o Cristo, fazer libertação.","echo":false}],[{"t":"Vão morrer os nossos medos de ser livres:","echo":false},{"t":"já calaram tantas vozes derrotistas!","echo":false},{"t":"Já partimos ao encontro,","echo":false},{"t":"dessa terra prometida:","echo":false},{"t":"Jesus Cristo nos congrega e faz irmãos.","echo":false}]],"since":"2026-11-01"},{"title":"Senhor, tem piedade","moment":"Ato penitencial","root":9,"keyName":"Lá maior","scale":["Lá","Si","Dó#","Ré","Mi","Fá#","Sol#"],"audio":"1","audioUrl":"https://joaojosedacostafernandes.github.io/canticos-missa/audio/2-ato-penitencial-senhor-tem-piedade.mp3","yt":"https://www.youtube.com/watch?v=Ih6MXnwmFe8","lyrics":[[{"t":"Senhor tem piedade de nós.","echo":false},{"t":"Somos o Teu povo pecador,","echo":false},{"t":"Toma a nossa vida de pecado e dor","echo":false},{"t":"Enche o nosso espírito de amor","echo":false}],[{"t":"Cristo tem piedade de nós…","echo":false},{"t":"Somos o Teu povo pecador,","echo":false},{"t":"Toma a nossa vida de pecado e dor","echo":false},{"t":"Enche o nosso espírito de amor","echo":false}],[{"t":"Senhor tem piedade de nós.","echo":false},{"t":"Somos o Teu povo pecador,","echo":false},{"t":"Toma a nossa vida de pecado e dor","echo":false},{"t":"Enche o nosso espírito de amor","echo":false}]],"since":"2026-10-18"},{"title":"Aleluia, a Palavra é Deus em nós","moment":"Aclamação","root":10,"keyName":"Si bemol maior","scale":["Sib","Dó","Ré","Mib","Fá","Sol","Lá"],"audio":"1","audioUrl":"https://joaojosedacostafernandes.github.io/canticos-missa/audio/3-aclamacao-aleluia-a-palavra-e-deus-em-nos.mp3","yt":"https://www.youtube.com/watch?v=8QBVUHwgo9c","lyrics":[[{"t":"Aleluia, a Palavra é Deus em nós","echo":false},{"t":"Aleluia, a Palavra é Deus em nós","echo":false},{"t":"Aleluia, Aleluia, Aleluia","echo":false},{"t":"Aleluia, Aleluia, A-le-luia","echo":false}]],"since":"2026-10-18"},{"title":"Louvado sejas, Senhor","moment":"Ofertório","root":1,"keyName":"Ré bemol maior","scale":["Réb","Mib","Fá","Solb","Láb","Sib","Dó"],"flag":"A folha está em Ré, mas na gravação o coro canta meio tom abaixo, em Ré bemol. Siga a gravação.","audio":"1","audioUrl":"https://joaojosedacostafernandes.github.io/canticos-missa/audio/4-ofertorio-louvado-sejas-senhor.mp3","yt":"https://www.youtube.com/watch?v=6OxEpFJAZhQ","lyrics":[[{"t":"Pela vida de todos nós,","echo":false},{"t":"Que sorri ao nascer do sol,","echo":false},{"t":"Pela fé e a dor de quem sofre,","echo":false},{"t":"Louvado sejas, Senhor.","echo":false}],[{"t":"Pelo pão que nos faz viver,","echo":false},{"t":"Pelo vinho que nos sacia,","echo":false},{"t":"Pela fome de tantos sem pão,","echo":false},{"t":"Louvado sejas, Senhor.","echo":false}],[{"t":"Louvado sejas, Senhor","echo":false},{"t":"Louvado sejas!","echo":false},{"t":"Louvado por estes dons que nos dás,","echo":false},{"t":"Louvado sejas! (bis)","echo":false}],[{"t":"Pela música e pela alegria,","echo":false},{"t":"Que ecoam bem dentro de nós,","echo":false},{"t":"Pelo sonho de um mundo em paz,","echo":false},{"t":"Louvado sejas, Senhor.","echo":false}],[{"t":"Pelo sol que aquece esta terra,","echo":false},{"t":"Pela luz que ilumina o dia,","echo":false},{"t":"Pelo silêncio que fala de ti:","echo":false},{"t":"Louvado sejas, Senhor!","echo":false}]],"since":"2026-10-18"},{"title":"Santo, Santo é o Senhor","moment":"Santo","root":0,"keyName":"Dó maior","scale":["Dó","Ré","Mi","Fá","Sol","Lá","Si"],"audio":"1","audioUrl":"https://joaojosedacostafernandes.github.io/canticos-missa/audio/5-santo-santo-santo-e-o-senhor.mp3","yt":"https://www.youtube.com/watch?v=5PDSoW2lKD4","lyrics":[[{"t":"Santo Santo é o Senhor,","echo":false},{"t":"(Santo Santo é o Senhor)","echo":true},{"t":"Senhor Deus do Universo,","echo":false},{"t":"(Senhor Deus do Universo)","echo":true},{"t":"O céu e a terra proclamam","echo":false},{"t":"(O céu e a terra proclamam)","echo":true},{"t":"a Vossa Gló-ó-ó-ó-ria! (bis)","echo":false}],[{"t":"O céu e a terra proclamam a Vossa glória:","echo":false},{"t":"Hossana nas alturas!","echo":false},{"t":"Bendito o que vem em nome do Senhor:","echo":false},{"t":"Hossana nas alturas!","echo":false}],[{"t":"Santo Santo é o Senhor…(1)","echo":false}]],"since":"2026-10-18"},{"title":"Cordeiro de Deus","moment":"Cordeiro de Deus","root":0,"keyName":"Dó maior","scale":["Dó","Ré","Mi","Fá","Sol","Lá","Si"],"flag":"A folha está em Ré, mas na gravação o coro canta um tom abaixo, em Dó. Siga a gravação.","audio":"1","audioUrl":"https://joaojosedacostafernandes.github.io/canticos-missa/audio/6-cordeiro-de-deus.mp3","yt":"https://www.youtube.com/watch?v=7DE3_wFMMiA","lyrics":[[{"t":"Cordeiro de Deus","echo":false},{"t":"Que tirais o pecado do mundo","echo":false},{"t":"Tende piedade de nós","echo":false},{"t":"Tende piedade de nós","echo":false}],[{"t":"Cordeiro de Deus","echo":false},{"t":"Que tirais o pecado do mundo","echo":false},{"t":"Tende piedade de nós","echo":false},{"t":"Tende piedade de nós","echo":false}],[{"t":"Cordeiro de Deus","echo":false},{"t":"Que tirais o pecado do mundo","echo":false},{"t":"Dai-nos a vossa paz","echo":false},{"t":"Dai-nos a vossa paz (2x)","echo":false}]],"since":"2026-10-18"},{"title":"Onde Deus te levar","moment":"Comunhão","root":9,"keyName":"Lá maior","scale":["Lá","Si","Dó#","Ré","Mi","Fá#","Sol#"],"flag":"Tom tirado da folha de acordes. Ainda não há gravação do coro para confirmar.","audio":"","audioUrl":"","yt":"https://www.youtube.com/watch?v=n4LukDtnSHM","lyrics":[[{"t":"Podes achar que não tens","echo":false},{"t":"p'ra onde ir, nem que fazer.","echo":false},{"t":"Não sabes bem quem és aqui,","echo":false},{"t":"neste mundo tão grande e frio.","echo":false},{"t":"Mas há qualquer coisa em ti","echo":false},{"t":"que te faz querer, querer ser alguém,","echo":false},{"t":"querer ser alguém.","echo":false}],[{"t":"E a vida não vai parar, vai como vento,","echo":false},{"t":"tens tudo a dar, não percas tempo.","echo":false},{"t":"Podes saber que vais chegar","echo":false},{"t":"onde Deus te levar.","echo":false}],[{"t":"Mas pode ser tão difícil","echo":false},{"t":"de acreditar em Deus assim.","echo":false},{"t":"Será que Deus se vai lembrar","echo":false},{"t":"de me ajudar? Será que sim?","echo":false},{"t":"Mas há qualquer coisa em mim","echo":false},{"t":"que me faz querer: acreditar, acreditar!","echo":false}]],"since":"2026-11-01"},{"title":"Guiado pela mão","moment":"Saída","root":7,"keyName":"Sol maior","scale":["Sol","Lá","Si","Dó","Ré","Mi","Fá#"],"flag":"Tom tirado da folha de acordes. Ainda não há gravação do coro para confirmar.","audio":"","audioUrl":"","yt":"https://www.youtube.com/watch?v=JQtivQ56fQU","lyrics":[[{"t":"Guiado pela mão com Jesus eu vou,","echo":false},{"t":"e sigo como ovelha que encontrou o Pastor.","echo":false},{"t":"Guiado pela mão com Jesus eu vou,","echo":false},{"t":"aonde Ele vai.","echo":false},{"t":"Guiado pela mão com Jesus eu vou,","echo":false},{"t":"e sigo como ovelha que encontrou o Pastor.","echo":false},{"t":"Guiado pela mão com Jesus eu vou,","echo":false},{"t":"aonde Ele vai, aonde Ele vai.","echo":false}],[{"t":"Se Jesus me diz: «amigo, deixa tudo e vem comigo»,","echo":false},{"t":"como posso resistir ao seu amor?","echo":false},{"t":"Se Jesus me diz: «amigo, deixa tudo e vem comigo»,","echo":false},{"t":"minha mão porei na sua e irei com Ele.","echo":false}],[{"t":"Se Jesus me diz: «amigo, deixa tudo e vem comigo»,","echo":false},{"t":"como posso ser feliz sem ir com Ele?","echo":false},{"t":"Se Jesus me diz: «amigo, deixa tudo e vem comigo»,","echo":false},{"t":"seguirei o seu caminho e irei com Ele.","echo":false}]],"since":"2026-11-01"}];
+/* Análise de afinação: segue a altura da voz (YIN) e compara as notas com a escala do cântico. Função pura, também corre em Node para testes. */
+const MAJOR = [0, 2, 4, 5, 7, 9, 11];
+
+function trackPitch(x, sr) {
+  const W = 384, hop = 256, tMin = Math.floor(sr / 1100), tMax = Math.ceil(sr / 75);
+  const d = new Float32Array(tMax + 2), frames = [];
+  const rmsList = [];
+  for (let s = 0; s + W + tMax < x.length; s += hop) {
+    let e = 0; for (let i = 0; i < W; i++) e += x[s + i] * x[s + i];
+    rmsList.push(Math.sqrt(e / W));
+  }
+  const sorted = rmsList.slice().sort((a, b) => a - b);
+  const gate = Math.max(0.004, 0.12 * (sorted[Math.floor(sorted.length * 0.95)] || 0));
+  rmsList.forEach((rms, f) => {
+    const s = f * hop;
+    if (rms < gate) { frames.push(null); return; }
+    let run = 0, tau = -1;
+    for (let t = 1; t <= tMax + 1; t++) {
+      let sum = 0;
+      for (let i = 0; i < W; i++) { const v = x[s + i] - x[s + i + t]; sum += v * v; }
+      run += sum; d[t] = sum * t / (run || 1);
+    }
+    for (let t = tMin; t <= tMax; t++) if (d[t] < 0.2 && d[t] <= d[t + 1]) { tau = t; break; }
+    if (tau < 0) { frames.push(null); return; }
+    const a = d[tau - 1], b = d[tau], c = d[tau + 1], den = a - 2 * b + c;
+    const tt = tau + (den ? 0.5 * (a - c) / den : 0);
+    frames.push(69 + 12 * Math.log2(sr / tt / 440));
+  });
+  /* só ficam notas sustentadas: 4+ janelas seguidas a menos de meio tom umas das outras */
+  const out = frames.map(() => null);
+  for (let i = 0; i < frames.length; ) {
+    if (frames[i] == null) { i++; continue; }
+    let j = i + 1;
+    while (j < frames.length && frames[j] != null && Math.abs(frames[j] - frames[j - 1]) < 0.5) j++;
+    if (j - i >= 4) for (let k = i; k < j; k++) out[k] = frames[k];
+    i = j;
+  }
+  return { midi: out, step: hop / sr };
+}
+
+function judge(midi, root) {
+  const v = midi.filter(m => m != null);
+  if (v.length < 40) return { ok: false, reason: "pouca-voz", voiced: v.length };
+  const inScale = (m, r) => MAJOR.includes((((Math.round(m) - r) % 12) + 12) % 12);
+  const fit = [...Array(12).keys()].map(k => v.filter(m => inScale(m, (root + k) % 12)).length / v.length);
+  /* desvio médio em cêntimos face à nota mais próxima (média circular) */
+  let sx = 0, sy = 0;
+  v.forEach(m => { const a = 2 * Math.PI * (m - Math.round(m)); sx += Math.cos(a); sy += Math.sin(a); });
+  const cents = Math.round(Math.atan2(sy, sx) / (2 * Math.PI) * 100);
+  const tuned = v.filter(m => Math.abs(m - Math.round(m)) <= 0.35 && inScale(m, root)).length / v.length;
+  const best = Math.max(...fit);
+  let shift = 0;
+  if (fit[0] < best - 0.08) {
+    const cands = [...Array(12).keys()].filter(k => fit[k] >= best - 0.03).map(k => (k > 6 ? k - 12 : k));
+    cands.sort((a, b) => Math.abs(a) - Math.abs(b));
+    shift = cands[0];
+  }
+  return { ok: true, fit: fit[0], best, shift, cents, tuned, voiced: v.length };
+}
+
+
+const MAJOR_STEPS = [0, 2, 4, 5, 7, 9, 11];
+const $ = id => document.getElementById(id);
+let cur = Math.max(0, DATA.findIndex(s => s.title.startsWith("Aleluia"))), lastRun = 0, lastResult = null;
+try { const v = parseInt(localStorage.getItem("ensaio-song"), 10); if (DATA[v]) cur = v; } catch (e) {}
+
+/* ---------- Escolha do cântico ---------- */
+function renderChips(){
+  $("chips").innerHTML = DATA.map((s, i) =>
+    `<button type="button" class="chip" data-i="${i}" aria-pressed="${i === cur}"><small>${s.moment}</small>${s.title}</button>`).join("");
+}
+$("chips").addEventListener("click", e => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  select(+b.dataset.i);
+});
+function select(i){
+  cur = i; stopDrone();
+  try { localStorage.setItem("ensaio-song", i); } catch (e) {}
+  const s = DATA[i];
+  renderChips();
+  $("moment").textContent = s.moment;
+  $("title").textContent = s.title;
+  $("keyname").textContent = s.keyName;
+  $("flag").textContent = s.flag || "";
+  $("flag").hidden = !s.flag;
+  const p = $("player");
+  p.pause();
+  if (s.audio) { p.hidden = false; p.src = s.audioUrl || "data:audio/mpeg;base64," + s.audio; }
+  else { p.hidden = true; p.removeAttribute("src"); }
+  $("yt").hidden = !s.yt; if (s.yt) $("yt").href = s.yt;
+  $("listen-txt").textContent = s.audio
+    ? "Toque a nota de casa e cante-a junto com o som, num \"lá\" ou \"mmm\". Depois ouça o início da gravação do coro e repare na primeira nota."
+    : "Toque a nota de casa e cante-a junto com o som, num \"lá\" ou \"mmm\". Este cântico ainda não tem gravação do coro. Pode ouvi-lo no YouTube, mas lá pode estar noutro tom.";
+  $("lyrics").innerHTML = s.lyrics.map(st => `<div class="stanza">${st.map(l => `<p${l.echo ? ' class="echo"' : ""}>${esc(l.t)}</p>`).join("")}</div>`).join("") || '<p class="small">Sem letra.</p>';
+  if (live) resetLive(); else if (s.audio) analyseExample(); else showIdle();
+}
+function esc(t){ return t.replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+
+/* ---------- Som de referência ---------- */
+let ac = null, drone = null;
+function ctx(){ if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === "suspended") ac.resume(); return ac; }
+function tonicHz(root){ let f = 440 * Math.pow(2, (root - 9) / 12); while (f < 220) f *= 2; while (f >= 440) f /= 2; return f; }
+function voice(c, f, gainVal, out){
+  const g = c.createGain(); g.gain.value = 0; g.connect(out);
+  [[1,1],[2,.35],[3,.15],[4,.06]].forEach(([h,a]) => { const o = c.createOscillator(); o.frequency.value = f*h; const og = c.createGain(); og.gain.value = a*gainVal; o.connect(og).connect(g); o.start(); g._o = (g._o||[]).concat(o); });
+  return g;
+}
+function startDrone(){
+  const c = ctx(), out = c.createGain(); out.gain.value = .9; out.connect(c.destination);
+  const g = voice(c, tonicHz(DATA[cur].root), .18, out);
+  g.gain.setTargetAtTime(1, c.currentTime, .08);
+  drone = {g, out};
+  $("drone").setAttribute("aria-pressed", "true"); $("drone").querySelector("span").textContent = "Parar a nota";
+}
+function stopDrone(){
+  if (drone && ac) { const {g} = drone; g.gain.setTargetAtTime(0, ac.currentTime, .06); setTimeout(() => g._o.forEach(o => o.stop()), 400); }
+  drone = null;
+  $("drone").setAttribute("aria-pressed", "false"); $("drone").querySelector("span").textContent = "Tocar a nota de casa";
+}
+$("drone").onclick = () => drone ? stopDrone() : startDrone();
+$("chord").onclick = () => {
+  const c = ctx(), f = tonicHz(DATA[cur].root), t = c.currentTime;
+  [0, 4, 7, 12].forEach((iv, k) => {
+    const g = voice(c, f * Math.pow(2, iv / 12), .1, c.destination);
+    g.gain.setTargetAtTime(1, t + k * .25, .03); g.gain.setTargetAtTime(0, t + 2.6, .25);
+    setTimeout(() => g._o.forEach(o => o.stop()), 4200);
+  });
+};
+
+/* ---------- Análise ---------- */
+const SR = 22050;
+async function decode(buf){
+  const C = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  const oc = new C(1, SR, SR);
+  const ab = await new Promise((res, rej) => { const p = oc.decodeAudioData(buf, res, rej); if (p && p.then) p.then(res, rej); });
+  const ch = ab.numberOfChannels, n = Math.min(ab.length, ab.sampleRate * 240);
+  const mono = new Float32Array(n);
+  for (let c = 0; c < ch; c++) { const d = ab.getChannelData(c); for (let i = 0; i < n; i++) mono[i] += d[i] / ch; }
+  /* reduz para metade (11 025 Hz) antes de seguir a altura */
+  const r = ab.sampleRate / 11025, out = new Float32Array(Math.floor(n / r));
+  for (let i = 0; i < out.length; i++) { const a = Math.floor(i * r), b = Math.max(a + 1, Math.floor((i + 1) * r)); let s = 0; for (let j = a; j < b; j++) s += mono[j]; out[i] = s / (b - a); }
+  return out;
+}
+function b64bytes(b64){ const s = atob(b64), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u.buffer; }
+
+async function run(buf, label, isExample){
+  const id = ++lastRun, s = DATA[cur];
+  $("res-label").textContent = label;
+  setVerdict("wait", "A analisar…", "Demora alguns segundos.");
+  await new Promise(r => setTimeout(r, 30));
+  let x;
+  try { x = await decode(buf); }
+  catch (e) { if (id === lastRun) setVerdict("warn", "Não consegui abrir este ficheiro.", "Experimente gravar em M4A ou MP3, que é o formato normal do gravador do telemóvel."); return; }
+  const p = trackPitch(x, 11025), r = judge(p.midi, s.root);
+  if (id !== lastRun) return;
+  lastResult = {p, r, root: s.root, scale: s.scale};
+  draw();
+  if (!r.ok && isExample) { setVerdict("wait", "Sem exemplo para este cântico.", "Nesta gravação a guitarra tapa as vozes. Pode cantar na mesma: ao vivo ou com uma gravação sua."); return; }
+  if (!r.ok) { setVerdict("warn", "Não consegui ouvir voz suficiente.", "Grave pelo menos 20 segundos, perto do telemóvel, num sítio sem barulho."); return; }
+  showVerdict(r, s, isExample);
+}
+function showVerdict(r, s, isExample){
+  const pct = Math.round(r.tuned * 100) + "%";
+  if (isExample) { setVerdict("good", "Exemplo: o coro está no tom de " + s.keyName + ".", "É assim que fica um ensaio afinado: quase todos os pontos verdes e em cima das linhas. Grave-se e compare."); return; }
+  if (r.shift !== 0) {
+    const n = Math.abs(r.shift), dist = ["", "meio tom", "um tom", "um tom e meio", "dois tons", "dois tons e meio", "três tons"][n];
+    setVerdict("warn", `Está a cantar ${dist} ${r.shift > 0 ? "acima" : "abaixo"} do coro.`,
+      `Toque a nota de casa, cante-a junto com o som até se misturarem e comece o cântico a partir daí. ${r.shift > 0 ? "Comece mais grave." : "Comece mais agudo."}`);
+  } else if (r.cents > 25) {
+    setVerdict("warn", "Está no tom certo, mas um pouco alta.", `As notas estão certas, mas ficam ligeiramente acima (cerca de ${r.cents} cêntimos, um quarto de tom). Relaxe e deixe a voz descer um pouco.`);
+  } else if (r.cents < -25) {
+    setVerdict("warn", "Está no tom certo, mas um pouco baixa.", `As notas estão certas, mas ficam ligeiramente abaixo (cerca de ${-r.cents} cêntimos, um quarto de tom). Apoie a respiração e pense nas notas "para cima".`);
+  } else if (r.tuned >= .8) {
+    setVerdict("good", "Está no tom certo.", `${pct} das notas que cantou ficaram certas.`);
+  } else {
+    setVerdict("warn", "Está no tom certo, mas algumas notas fugiram.", `${pct} das notas ficaram certas. Veja no gráfico os pontos laranja: é aí que vale a pena ensaiar mais.`);
+  }
+}
+function setVerdict(kind, strong, span){ const v = $("verdict"); v.className = "verdict " + kind; v.innerHTML = `<strong>${strong}</strong>${span ? `<span>${span}</span>` : ""}`; }
+function analyseExample(){
+  const s = DATA[cur];
+  if (!s.audioUrl) { run(b64bytes(s.audio), "Exemplo com a gravação do coro", true); return; }
+  const id = lastRun;
+  $("res-label").textContent = "Exemplo com a gravação do coro";
+  setVerdict("wait", "A carregar a gravação do coro…", "");
+  fetch(s.audioUrl).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
+    .then(buf => { if (id === lastRun && DATA[cur] === s) run(buf, "Exemplo com a gravação do coro", true); })
+    .catch(() => { if (id === lastRun) setVerdict("wait", "Não consegui carregar a gravação do coro.", "Verifique a ligação à internet. Pode cantar na mesma: ao vivo ou com uma gravação sua."); });
+}
+function showIdle(){
+  lastRun++; lastResult = null; draw();
+  $("res-label").textContent = "Resultado";
+  setVerdict("wait", "Ainda não há gravação para analisar.", "Escolha a sua gravação no passo 3. O resultado aparece aqui, comparado com o tom de " + DATA[cur].keyName + ".");
+}
+$("upload").addEventListener("change", async e => {
+  const f = e.target.files[0]; if (!f) return;
+  stopLive();
+  const buf = await f.arrayBuffer();
+  e.target.value = "";
+  run(buf, "A sua gravação · " + f.name, false);
+});
+
+/* ---------- Ao vivo: microfone ---------- */
+const NOTE_NAMES = ["Dó","Dó#","Ré","Mib","Mi","Fá","Fá#","Sol","Sol#","Lá","Sib","Si"];
+const LIVE_STEP = 0.05, LIVE_KEEP = 30;
+let live = null;
+const MIC_HELP = "O microfone não está disponível aqui. No Chrome ou no Edge, carregue no ícone à esquerda do endereço e permita o microfone. Na versão do claude.ai o microfone não funciona: use a opção da gravação.";
+function yinFrame(x, sr){
+  const W = Math.floor(x.length / 2), tMin = Math.floor(sr / 1100), tMax = Math.min(W - 2, Math.ceil(sr / 75)), d = new Float32Array(tMax + 2);
+  let e = 0; for (let i = 0; i < W; i++) e += x[i] * x[i];
+  if (Math.sqrt(e / W) < 0.01) return null;
+  let run = 0, tau = -1;
+  for (let t = 1; t <= tMax + 1; t++) {
+    let sum = 0; for (let i = 0; i < W; i++) { const v = x[i] - x[i + t]; sum += v * v; }
+    run += sum; d[t] = sum * t / (run || 1);
+  }
+  for (let t = tMin; t <= tMax; t++) if (d[t] < 0.15 && d[t] <= d[t + 1]) { tau = t; break; }
+  if (tau < 0) return null;
+  const a = d[tau - 1], b = d[tau], c = d[tau + 1], den = a - 2 * b + c;
+  return 69 + 12 * Math.log2(sr / (tau + (den ? 0.5 * (a - c) / den : 0)) / 440);
+}
+function resetLive(){
+  if (!live) return;
+  live.midi = []; live.prev = null; lastResult = null; draw();
+  $("res-label").textContent = "Ao vivo · " + DATA[cur].title;
+  setVerdict("wait", "A ouvir…", "Cante o cântico. Ao fim de alguns segundos digo-lhe se está no tom de " + DATA[cur].keyName + ".");
+}
+async function startLive(){
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: false, noiseSuppression: false, autoGainControl: false}});
+  } catch (e) {
+    $("meter").hidden = false;
+    $("now-note").textContent = "–";
+    $("now-state").textContent = MIC_HELP;
+    return;
+  }
+  const c = ctx(), src = c.createMediaStreamSource(stream), an = c.createAnalyser();
+  an.fftSize = 2048; src.connect(an);
+  live = {stream, an, buf: new Float32Array(an.fftSize), midi: [], prev: null, n: 0};
+  live.timer = setInterval(liveTick, LIVE_STEP * 1000);
+  $("live").setAttribute("aria-pressed", "true"); $("live").querySelector("span").textContent = "Parar";
+  $("meter").hidden = false;
+  resetLive();
+}
+function stopLive(){
+  if (!live) return;
+  clearInterval(live.timer); live.stream.getTracks().forEach(t => t.stop()); live = null;
+  $("live").setAttribute("aria-pressed", "false"); $("live").querySelector("span").textContent = "Começar a cantar ao vivo";
+  $("now-note").textContent = "–"; $("now-state").textContent = "Parado."; $("meter").querySelector(".now").className = "now";
+}
+$("live").onclick = () => live ? stopLive() : startLive();
+function liveTick(){
+  const s = DATA[cur];
+  live.an.getFloatTimeDomainData(live.buf);
+  let m = yinFrame(live.buf, ac.sampleRate);
+  /* só aceita a nota quando se repete em duas leituras seguidas, para ignorar ruídos */
+  const steady = m != null && live.prev != null && Math.abs(m - live.prev) < 0.5;
+  live.prev = m;
+  if (!steady) m = null;
+  live.midi.push(m);
+  const max = Math.round(LIVE_KEEP / LIVE_STEP);
+  if (live.midi.length > max) live.midi.splice(0, live.midi.length - max);
+  const now = $("meter").querySelector(".now"), needle = $("needle");
+  if (m == null) { needle.classList.add("off"); }
+  else {
+    const n = Math.round(m), cents = Math.round((m - n) * 100), d = ((n - s.root) % 12 + 12) % 12, k = MAJOR_STEPS.indexOf(d);
+    $("now-note").textContent = k >= 0 ? s.scale[k] : NOTE_NAMES[((n % 12) + 12) % 12];
+    let state, ok = false;
+    if (k < 0) state = "fora do tom";
+    else if (cents > 20) state = "um pouco alta, desça";
+    else if (cents < -20) state = "um pouco baixa, suba";
+    else { state = "certa"; ok = true; }
+    now.className = "now " + (ok ? "good" : "warn");
+    $("now-state").textContent = state;
+    needle.classList.remove("off");
+    needle.style.left = (50 + Math.max(-50, Math.min(50, cents))) + "%";
+  }
+  lastResult = {p: {midi: live.midi, step: LIVE_STEP}, root: s.root, scale: s.scale};
+  if (++live.n % 2 === 0) draw();
+  if (live.n % 20 === 0) {
+    const r = judge(live.midi, s.root);
+    if (r.ok) showVerdict(r, s, false);
+  }
+}
+
+/* ---------- Gráfico ---------- */
+function draw(){
+  const cv = $("chart"), dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+  cv.width = w * dpr; cv.height = h * dpr;
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+  const css = getComputedStyle(document.documentElement), col = n => css.getPropertyValue(n).trim();
+  const font = css.getPropertyValue("--ui");
+  g.font = "12px " + font; g.textBaseline = "middle";
+  if (!lastResult) {
+    g.fillStyle = col("--muted"); g.textAlign = "center";
+    g.fillText("As suas notas vão aparecer aqui.", w / 2, h / 2);
+    return;
+  }
+  const {p, root, scale} = lastResult, pts = [];
+  p.midi.forEach((m, i) => { if (m != null) pts.push([i * p.step, m]); });
+  if (!pts.length) { g.fillStyle = col("--muted"); g.textAlign = "center"; g.fillText("Não foi detetada voz.", w / 2, h / 2); return; }
+  const ms = pts.map(q => q[1]).sort((a, b) => a - b);
+  let lo = Math.floor(ms[Math.floor(ms.length * .05)]) - 1, hi = Math.ceil(ms[Math.floor(ms.length * .95)]) + 1;
+  if (hi - lo > 14) { const c = ms[Math.floor(ms.length / 2)]; lo = Math.floor(c - 7); hi = Math.ceil(c + 7); }
+  if (hi - lo < 8) { const c = (hi + lo) / 2; lo = Math.floor(c - 4); hi = Math.ceil(c + 4); }
+  const L = 46, R = 10, T = 10, B = 22, t1 = pts[pts.length - 1][0] || 1;
+  const X = t => L + (w - L - R) * t / t1, Y = m => T + (h - T - B) * (hi - m) / (hi - lo);
+  g.textAlign = "right";
+  for (let m = Math.ceil(lo); m <= hi; m++) {
+    const d = (((m - root) % 12) + 12) % 12, k = MAJOR_STEPS.indexOf(d);
+    if (k < 0) continue;
+    const y = Y(m), tonic = d === 0;
+    g.strokeStyle = tonic ? col("--gold") : col("--line"); g.lineWidth = tonic ? 2 : 1;
+    g.beginPath(); g.moveTo(L, y); g.lineTo(w - R, y); g.stroke();
+    g.fillStyle = tonic ? col("--gold") : col("--muted");
+    /* com pouco espaço entre linhas, só a nota de casa leva nome */
+    if (tonic || (h - T - B) / (hi - lo) >= 13) g.fillText(scale[k], L - 6, y);
+  }
+  g.textAlign = "left"; g.fillStyle = col("--muted");
+  g.fillText("0 s", L, h - 8); g.textAlign = "right"; g.fillText(Math.round(t1) + " s", w - R, h - 8);
+  const good = col("--good"), warn = col("--warn");
+  pts.forEach(([t, m]) => {
+    if (m < lo || m > hi) return;
+    const d = (((Math.round(m) - root) % 12) + 12) % 12;
+    g.fillStyle = MAJOR_STEPS.includes(d) && Math.abs(m - Math.round(m)) <= .35 ? good : warn;
+    g.beginPath(); g.arc(X(t), Y(m), 2, 0, 7); g.fill();
+  });
+}
+addEventListener("resize", () => draw());
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => draw());
+new MutationObserver(() => draw()).observe(document.documentElement, {attributes: true, attributeFilter: ["data-theme"]});
+
+select(cur);
+</script>
+</body></html>

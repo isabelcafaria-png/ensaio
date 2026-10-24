@@ -103,6 +103,24 @@ canvas{width:100%;height:240px;display:block;border-radius:10px;background:var(-
 .cue.up,.cue.down{border-color:var(--warn);color:var(--warn);background:var(--warn-soft)}
 .kara-bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
 .kscore{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+.wrap{max-width:1120px}
+.sing{display:grid;gap:20px;align-items:start}
+.kara-card{gap:14px}
+.kara{border:0;padding:0;background:transparent}
+#kcanvas{height:clamp(200px,34vh,320px)}
+.lyr{max-height:none}
+@media (max-width:899px){
+  .kara-card{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;box-shadow:0 8px 20px -12px rgba(0,0,0,.25)}
+  .kara-card .song-head h2{font-size:22px}
+  #kmsg{display:none}
+  .chips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
+  .chip{flex:none}
+}
+@media (min-width:900px){
+  .sing{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
+  .kara-card{position:sticky;top:16px}
+  .lyr{max-height:calc(100vh - 40px);overflow:auto;position:sticky;top:16px}
+}
 .lyrics{font:400 19px/1.6 var(--lyric);display:grid;gap:18px}
 .lyrics h3{font:600 13px/1 var(--ui);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0}
 .stanza p{margin:0}
@@ -115,7 +133,7 @@ a{color:var(--accent)}
 <div class="wrap">
   <header>
     <h1>Ensaio do Coro</h1>
-    <p>Igreja de Nossa Senhora do Rosário de Fátima. Escolha o cântico, ouça a nota de partida, cante e confirme se ficou no tom do coro.</p>
+    <p>Escolha o cântico, ponha auscultadores e cante com o coro.</p>
   </header>
 
   <section class="picker" aria-label="Escolher o cântico">
@@ -123,17 +141,37 @@ a{color:var(--accent)}
     <div class="chips" id="chips"></div>
   </section>
 
+  <div class="sing">
+    <article class="card kara-card" id="song">
+      <div class="song-head">
+        <span class="moment" id="moment"></span>
+        <h2 id="title"></h2>
+      </div>
+      <section class="kara" id="kara" aria-label="Cantar com o coro">
+        <div class="stage">
+          <canvas id="kcanvas" role="img" aria-label="Notas do coro a passar, com a linha da sua voz por cima"></canvas>
+          <div class="cue" id="cue" aria-live="off"></div>
+        </div>
+        <div class="kara-bar">
+          <button type="button" class="b" id="kplay" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span>Começar a cantar</span></button>
+          <span class="kscore" id="kscore"></span>
+        </div>
+        <p class="small" id="kmsg">Ponha a sua voz em cima das barras. Verde é certo. Se aparecer ▲ suba, se aparecer ▼ desça.</p>
+      </section>
+      <p class="flag" id="kara-none" hidden>Este cântico ainda não tem gravação do coro, por isso ainda não dá para cantar com ele aqui.</p>
+      <audio id="player" preload="none"></audio>
+    </article>
+    <article class="card lyr" aria-label="Letra">
+      <div class="lyrics" id="lyrics"></div>
+    </article>
+  </div>
+
+  <div hidden>
   <section class="picker" aria-labelledby="voice-h">
     <h2 id="voice-h">A minha voz</h2>
     <div class="voices" id="voices" role="group" aria-labelledby="voice-h"></div>
     <p class="small" id="voice-tip"></p>
   </section>
-
-  <article class="card" id="song" aria-live="polite">
-    <div class="song-head">
-      <span class="moment" id="moment"></span>
-      <h2 id="title"></h2>
-    </div>
 
     <div class="key">
       <div class="k"><span>Tom em que o coro canta</span><strong id="keyname"></strong></div>
@@ -145,28 +183,10 @@ a{color:var(--accent)}
     </div>
     <p class="flag" id="flag"></p>
 
-    <section class="kara" id="kara" aria-labelledby="kara-h">
-      <div class="kara-head">
-        <h3 id="kara-h">Cantar com o coro</h3>
-        <p><strong>Ponha auscultadores.</strong> Sem eles, o microfone ouve a música e não a sua voz. As barras são as notas do coro. A sua voz é a linha: tente pô-la em cima das barras.</p>
-      </div>
-      <div class="stage">
-        <canvas id="kcanvas" role="img" aria-label="Notas do coro a passar, com a linha da sua voz por cima"></canvas>
-        <div class="cue" id="cue" aria-live="off"></div>
-      </div>
-      <div class="kara-bar">
-        <button type="button" class="b" id="kplay" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span>Começar a cantar com o coro</span></button>
-        <span class="kscore" id="kscore"></span>
-      </div>
-      <p class="small" id="kmsg">As barras foram tiradas automaticamente da gravação do coro e podem ter pequenos erros. Se uma barra lhe parecer errada, confie no ouvido.</p>
-    </section>
-    <p class="flag" id="kara-none" hidden>Este cântico ainda não tem gravação do coro, por isso não há modo karaoke. Use a nota de casa e o modo ao vivo mais abaixo.</p>
-
     <div class="steps">
       <div class="step"><div>
         <h3>Ouça o tom</h3>
         <p id="listen-txt">Toque a nota de casa e cante-a junto com o som, num "lá" ou "mmm". Quando o som e a sua voz se misturarem sem "vibrar", está no tom.</p>
-        <audio id="player" controls preload="none"></audio>
         <a id="yt" target="_blank" rel="noopener" hidden>Ouvir no YouTube</a>
       </div></div>
       <div class="step"><div>
@@ -194,11 +214,7 @@ a{color:var(--accent)}
       <div class="legend"><span><i style="background:var(--good)"></i>nota certa do tom</span><span><i style="background:var(--warn)"></i>nota fora do tom</span><span><i style="background:var(--gold)"></i>linha da nota de casa</span></div>
       <p class="small">As linhas são as notas do tom do cântico. Os pontos verdes devem cair em cima das linhas. A análise vê se está no tom certo e afinada. Não vê se cantou a melodia certa.</p>
     </div>
-  </article>
-
-  <article class="card">
-    <div class="lyrics" id="lyrics"></div>
-  </article>
+  </div>
 
   <p class="small">Letras, acordes e gravações do <a href="https://joaojosedacostafernandes.github.io/canticos-missa/" target="_blank" rel="noopener">site dos Cânticos da Missa</a>. Tons confirmados pela análise das gravações do coro de 18 de outubro de 2026.</p>
 </div>
@@ -285,6 +301,7 @@ function select(i){
   try { localStorage.setItem("ensaio-song", i); } catch (e) {}
   const s = DATA[i];
   renderChips(); renderVoices();
+  const on = document.querySelector(".chip[aria-pressed=\"true\"]"); if (on && on.scrollIntoView) on.scrollIntoView({block: "nearest", inline: "center"});
   $("moment").textContent = s.moment;
   $("title").textContent = s.title;
   $("keyname").textContent = s.keyName;
@@ -302,7 +319,7 @@ function select(i){
   stopKara();
   $("kara").hidden = !s.mel; $("kara-none").hidden = !!s.mel; $("kscore").textContent = "";
   requestAnimationFrame(drawKara);
-  if (live) resetLive(); else if (s.audio && !s.demo) analyseExample(); else showIdle();
+  if (live) resetLive(); else showIdle();
 }
 function esc(t){ return t.replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
 
